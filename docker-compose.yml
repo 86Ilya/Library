@@ -1,0 +1,63 @@
+version: '2.0'
+
+volumes:
+  postgres_data:
+services:
+  db1:
+    image: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD1}
+      - POSTGRES_USER=${DATABASE_USER1}
+      - POSTGRES_DB=${DATABASE_NAME1}
+  db2:
+    image: postgres
+    ports:
+      - "25432:5432"
+    environment:
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD2}
+      - POSTGRES_USER=${DATABASE_USER2}
+      - POSTGRES_DB=${DATABASE_NAME2}
+  web:
+    build:
+         context: .
+         dockerfile: ./docker/web_service/Dockerfile
+    command: /app/docker/web_service/fire.sh
+    environment:
+       - SECRET_KEY=${SECRET_KEY}
+       - DATABASE_PASSWORD1=${DATABASE_PASSWORD1}
+       - DATABASE_USER1=${DATABASE_USER1}
+       - DATABASE_NAME1=${DATABASE_NAME1}
+       - DATABASE_HOST1=${DATABASE_HOST1}
+
+       - DATABASE_PASSWORD2=${DATABASE_PASSWORD2}
+       - DATABASE_USER2=${DATABASE_USER2}
+       - DATABASE_NAME2=${DATABASE_NAME2}
+       - DATABASE_HOST2=${DATABASE_HOST2}
+    volumes:
+    - ./Library/apps:/app/Library/apps # For the developing purposes
+    - static-content:/app/static/
+    - media-content:/app/media/
+    - logs-app:/app/logs
+    depends_on:
+      - db1
+
+  nginx:
+    restart: always
+    image: nginx:latest
+    ports: 
+      - "80:8080"
+    depends_on:
+          - web
+    volumes:
+      - static-content:/app/static
+      - media-content:/app/media
+      - logs-app:/srv/www/library/logs
+      - ./docker/nginx:/etc/nginx/conf.d
+      - ./docker/uwsgi_config/:/srv/config
+
+volumes:
+    static-content:
+    media-content:
+    logs-app:
